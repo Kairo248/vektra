@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: vektra
+  # Local overrides (password, etc.): classpath file after rebuild, OR file next to JVM cwd (no rebuild).
+  config:
+    import:
+      - optional:classpath:application-local.yml
+      - optional:file:./application-local.yml
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: vektra
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+  datasource:
+    # JDBC URL: application.properties (SPRING_DATASOURCE_URL for Docker). Username/password here so optional application-local.yml can still set password without being overridden by a properties file.
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+server:
+  servlet:
+    context-path: /api
+  # Trust X-Forwarded-* from Nginx / a load balancer when building redirect URLs.
+  forward-headers-strategy: framework
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+
+# Swagger: open http://localhost:8080/api/swagger-ui.html (redirects into UI). OpenAPI: /api/v3/api-docs
+springdoc:
+  swagger-ui:
+    operations-sorter: method
+
+vektra:
+  kafka:
+    # Off by default so the app starts without a broker on localhost:9092. Set true in application-local.yml when Kafka is running.
+    admin:
+      create-topics: false
+    audit-consumer-enabled: false
+    topics:
+      ledger: vektra.ledger.events

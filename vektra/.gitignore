@@ -1,0 +1,15 @@
+/target/
+src/main/resources/application-local.yml
+/application-local.yml
+!.mvn/wrapper/maven-wrapper.jar
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+*.log
+.DS_Store
+
+web/node_modules/
+web/.next/
+web/out/

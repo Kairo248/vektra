@@ -1,0 +1,297 @@
+{
+  "info": {
+    "name": "Vektra API",
+    "description": "All REST endpoints. Default server: Spring `context-path` is `/api` (full URL `http://localhost:8080/api/...`). Auth is open for local testing — no Bearer token required.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "userId",
+      "value": "1"
+    },
+    {
+      "key": "taskId",
+      "value": "1"
+    },
+    {
+      "key": "accountId",
+      "value": "1"
+    },
+    {
+      "key": "walletId",
+      "value": "1"
+    },
+    {
+      "key": "completionId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/auth/login",
+            "description": "Returns user, account, wallet (no JWT in current dev setup)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada\",\n  \"surname\": \"Lovelace\",\n  \"email\": \"ada@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/users/signup",
+            "description": "201 Created. Password min length 8."
+          }
+        },
+        {
+          "name": "Get user by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Get account for user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/users/{{userId}}/account"
+          }
+        },
+        {
+          "name": "Get wallet for user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/users/{{userId}}/wallet"
+          }
+        },
+        {
+          "name": "Get wallet balance (ledger)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/users/{{userId}}/wallet/balance"
+          }
+        },
+        {
+          "name": "List transactions for user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/users/{{userId}}/transactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Get account by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/accounts/{{accountId}}"
+          }
+        },
+        {
+          "name": "Activate account (PENDING → ACTIVE)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/v1/accounts/{{accountId}}/activate"
+          }
+        },
+        {
+          "name": "Suspend account",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/v1/accounts/{{accountId}}/suspend"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Get wallet by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/wallets/{{walletId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Daily check-in\",\n  \"description\": \"Open the app once per day.\",\n  \"rewardAmount\": 100,\n  \"earnType\": \"AUTOMATIC\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/tasks",
+            "description": "`earnType`: AUTOMATIC | MANUAL. `status` optional; defaults on server if omitted."
+          }
+        },
+        {
+          "name": "List active tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/tasks"
+          }
+        },
+        {
+          "name": "Get task by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/tasks/{{taskId}}"
+          }
+        },
+        {
+          "name": "Update task status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/tasks/{{taskId}}/status",
+            "description": "`status`: ACTIVE | INACTIVE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Task completions",
+      "item": [
+        {
+          "name": "Complete task (create completion)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/v1/users/{{userId}}/tasks/{{taskId}}/completions",
+            "description": "201 Created. Account usually must be ACTIVE for earn flows."
+          }
+        },
+        {
+          "name": "Get completion by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/task-completions/{{completionId}}"
+          }
+        },
+        {
+          "name": "Approve completion (manual tasks)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/v1/task-completions/{{completionId}}/approve"
+          }
+        },
+        {
+          "name": "Reject completion",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/v1/task-completions/{{completionId}}/reject"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List users (with accounts)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/admin/users"
+          }
+        },
+        {
+          "name": "List all tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/admin/tasks"
+          }
+        },
+        {
+          "name": "List task completions by status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/admin/task-completions?status=PENDING",
+            "description": "Query `status`: PENDING | APPROVED | REJECTED (default PENDING)."
+          }
+        },
+        {
+          "name": "List all completed tasks (approved)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/admin/completed-tasks",
+            "description": "All APPROVED task completions, newest `completedAt` first. Same data as task-completions?status=APPROVED."
+          }
+        }
+      ]
+    }
+  ]
+}

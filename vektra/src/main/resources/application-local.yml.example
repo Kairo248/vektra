@@ -1,0 +1,14 @@
+# Set your MySQL password using either:
+# A) Copy this file to vektra/src/main/resources/application-local.yml and rebuild, or
+# B) Save as vektra/application-local.yml (same working directory as `java ... VektraApplication` — often no rebuild).
+# Do not commit real passwords. If one was committed, change it in MySQL and rotate.
+
+spring:
+  datasource:
+    password: YOUR_MYSQL_PASSWORD
+
+# When Kafka is running locally:
+# vektra:
+#   kafka:
+#     admin:
+#       create-topics: true
