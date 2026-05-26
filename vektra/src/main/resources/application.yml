@@ -23,9 +23,19 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # Fail fast on bad/unreachable DB so we get a real "Connection refused" /
+    # "Access denied" / "Unknown host" error instead of a 30s hang that
+    # bubbles up as a misleading Hibernate dialect-detection error.
+    hikari:
+      connection-timeout: 5000
+      initialization-fail-timeout: 5000
   jpa:
     hibernate:
       ddl-auto: update
+    # Force the dialect so Hibernate never tries to infer it from a (possibly
+    # failed) JDBC connection. Avoids the "Unable to determine Dialect
+    # without JDBC metadata" red herring that hides the real connection error.
+    database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: false
     properties:
       hibernate:
