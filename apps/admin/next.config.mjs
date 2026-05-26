@@ -36,6 +36,23 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        // Friendly landing: when the admin is deployed on its own host
+        // (e.g. vektra-admin.onrender.com), the bare "/" would otherwise
+        // 404 because every page lives under /admin/* due to basePath.
+        // basePath: false matches the literal "/" (not "/admin/") and
+        // makes the destination an absolute path that is NOT prefixed
+        // again. AuthGuard inside /admin will bounce to /admin/login
+        // when the visitor is not signed in.
+        source: "/",
+        destination: "/admin",
+        permanent: false,
+        basePath: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
