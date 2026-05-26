@@ -1,6 +1,7 @@
 package com.vektra.service;
 
 import com.vektra.dto.request.SignupRequest;
+import com.vektra.dto.request.UpdateUserRoleRequest;
 import com.vektra.dto.response.SignupResponse;
 import com.vektra.dto.response.UserResponse;
 import com.vektra.entity.Account;
@@ -39,6 +40,20 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
         return userMapper.toResponse(user);
+    }
+
+    /**
+     * Sets the user's role (USER / ADMIN). Idempotent: setting a role that
+     * the user already has is a no-op write that still returns the current
+     * UserResponse. The PATCH semantics deliberately do not touch the
+     * associated account_state — activate via AccountService.activate().
+     */
+    @Transactional
+    public UserResponse updateRole(Long id, UpdateUserRoleRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+        user.setUserType(request.getUserType());
+        return userMapper.toResponse(userRepository.save(user));
     }
 
     @Transactional
