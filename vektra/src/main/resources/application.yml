@@ -26,9 +26,18 @@ spring:
     # Fail fast on bad/unreachable DB so we get a real "Connection refused" /
     # "Access denied" / "Unknown host" error instead of a 30s hang that
     # bubbles up as a misleading Hibernate dialect-detection error.
+    #
+    # Pool size: Clever Cloud free MySQL caps max_user_connections at 5.
+    # Render's "primary port detected" restart briefly runs old + new
+    # containers in parallel, so each container must stay well under 5.
+    # 2 active + 0 idle leaves headroom during the rollover.
     hikari:
       connection-timeout: 5000
       initialization-fail-timeout: 5000
+      maximum-pool-size: 2
+      minimum-idle: 0
+      idle-timeout: 30000
+      max-lifetime: 120000
   jpa:
     hibernate:
       ddl-auto: update
