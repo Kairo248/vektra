@@ -26,8 +26,13 @@ const nextConfig = {
     const backend = backendOrigin();
     return [
       {
+        // basePath: false keeps the source at /spring-api/* instead of being
+        // auto-prefixed to /admin/spring-api/*. The browser-side API client
+        // calls /spring-api/* directly (no /admin prefix), so the rewrite
+        // must match without the basePath.
         source: "/spring-api/:path*",
         destination: `${backend}/api/:path*`,
+        basePath: false,
       },
     ];
   },

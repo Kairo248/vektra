@@ -10,7 +10,10 @@ COPY . .
 ARG BACKEND_URL=http://backend:8080
 ENV BACKEND_URL=$BACKEND_URL
 
-ARG NEXT_PUBLIC_API_URL=/api
+# Default targets Render-style deploy: the browser hits same-origin /spring-api/*,
+# Next.js rewrites it server-side to ${BACKEND_URL}/api/*. docker-compose overrides
+# this to /api so Nginx can route browser calls directly to Spring.
+ARG NEXT_PUBLIC_API_URL=/spring-api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN mkdir -p public && npm run build

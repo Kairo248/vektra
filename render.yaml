@@ -1,0 +1,72 @@
+# =============================================================================
+# Vektra — Render Blueprint (free-tier staging)
+# =============================================================================
+# Three Docker services deployed from this monorepo. The database is external
+# (Clever Cloud free MySQL) — its connection details are set as secret env
+# vars (sync: false) on the backend service in the Render dashboard.
+#
+# Notes:
+# - Free tier sleeps after 15 min idle (~30-60s cold start on next request).
+# - Each service gets its own *.onrender.com URL. There is no shared edge,
+#   so Nginx is intentionally NOT deployed here. Browser → Next (same origin)
+#   → /spring-api/* rewrite → Spring Boot at $BACKEND_URL/api/*.
+# - Render exposes envVars as both runtime env AND `docker build --build-arg`,
+#   so NEXT_PUBLIC_* and BACKEND_URL are baked into the Next.js build correctly.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Spring Boot backend (Java 17). Listens on 8080 inside the container;
+  # Render auto-detects and exposes it on HTTPS.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: vektra-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./vektra/Dockerfile
+    dockerContext: ./vektra
+    healthCheckPath: /api/v3/api-docs
+    envVars:
+      # MySQL connection. Set these in the Render dashboard to the values from
+      # your Clever Cloud MySQL DEV add-on. sync: false keeps them out of git.
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # Public web Next.js (root path on its own domain).
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: vektra-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./apps/web/Dockerfile
+    dockerContext: ./apps/web
+    healthCheckPath: /
+    envVars:
+      # Set to https://<backend-name>.onrender.com after the backend deploys
+      # for the first time. Build-time ARG: Next bakes the rewrite destination
+      # into the build, so a redeploy is required when this changes.
+      - key: BACKEND_URL
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # Admin Next.js. Keeps basePath: /admin (matching local dev) so URLs are
+  # vektra-admin.onrender.com/admin/login, /admin/users, etc.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: vektra-admin
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./apps/admin/Dockerfile
+    dockerContext: ./apps/admin
+    healthCheckPath: /admin
+    envVars:
+      - key: BACKEND_URL
+        sync: false
