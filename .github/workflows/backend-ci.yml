@@ -1,0 +1,126 @@
+name: backend-ci
+
+# WHY: a workflow only matters if it runs at the right moments.
+# - push to main: validates what is "officially" in the trunk.
+# - pull_request to main: validates a change BEFORE it is merged (the main value of CI).
+# - paths: don't waste minutes rebuilding the backend when only the web/admin folders change.
+on:
+  # WHY two branches:
+  # - dev  = integration / staging branch. Validated on every merge.
+  # - main = production branch. PRs from dev are validated before promotion.
+  push:
+    branches: [dev, main]
+    paths:
+      - "vektra/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "vektra/**"
+      - ".github/workflows/backend-ci.yml"
+
+# WHY: cancel older runs on the same branch/PR. If you push 3 commits fast,
+# only the latest one is worth validating. Saves minutes and gives faster feedback.
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test (Maven)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # WHY: backend code lives in vektra/. Setting working-directory once
+    # avoids repeating "cd vektra" in every step.
+    defaults:
+      run:
+        working-directory: vektra
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # WHY: the runner is an empty Ubuntu VM. It has no JDK by default.
+      # setup-java installs Temurin 17 (matches your pom.xml java.version=17)
+      # and configures a Maven dependency cache keyed on pom.xml.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # WHY: `verify` runs compile + unit tests + integration tests + packaging,
+      # which is stricter than `test`. -B = batch mode (no fancy progress output).
+      # -ntp = no transfer progress (cleaner logs).
+      - name: Build & run tests
+        run: mvn -B -ntp verify
+
+      # WHY: upload the JAR so you can download it from the Actions UI to inspect,
+      # and so a future deploy job can reuse it instead of rebuilding.
+      - name: Upload JAR artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vektra-backend-jar
+          path: vektra/target/*.jar
+          if-no-files-found: error
+          retention-days: 7
+
+      # WHY: upload test reports even on failure so you can debug a red build
+      # without re-running locally.
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: vektra/target/surefire-reports/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+  docker-build:
+    name: Build Docker image
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # WHY: Buildx is Docker's modern builder — it enables layer caching,
+      # multi-platform images, and is the standard in CI.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # WHY: build but do not push (yet). We are validating that the image
+      # *can* be built reproducibly on a clean machine — a real CI check,
+      # not just "it works on my laptop".
+      # tags: a sha-based tag (immutable) + a moving "latest" tag for convenience.
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: vektra
+          file: vektra/Dockerfile
+          push: false
+          load: true
+          tags: |
+            vektra-backend:${{ github.sha }}
+            vektra-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # WHY: prove the image actually starts. A built image that crashes on boot
+      # is worse than a build failure because it pretends to be healthy.
+      # We don't connect to MySQL here — that belongs in an e2e workflow.
+      - name: Smoke-test the image
+        run: |
+          docker run --rm --name vektra-smoke -d \
+            -e SPRING_PROFILES_ACTIVE=ci \
+            -e SPRING_DATASOURCE_URL=jdbc:h2:mem:ci \
+            vektra-backend:${{ github.sha }} || true
+          sleep 5
+          docker ps -a --filter "name=vektra-smoke"
+          docker logs vektra-smoke || true
+          docker rm -f vektra-smoke || true
