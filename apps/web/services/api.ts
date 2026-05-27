@@ -278,6 +278,18 @@ export async function adminListTaskCompletions(
   }
 }
 
+/** Public-ish read of every APPROVED completion (used for homepage stats). */
+export async function getCompletedTasks(): Promise<TaskCompletionResponse[]> {
+  try {
+    const { data } = await apiClient.get<TaskCompletionResponse[]>(
+      "/v1/admin/completed-tasks"
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
 export async function adminApproveCompletion(
   id: number
 ): Promise<TaskCompletionResponse> {
