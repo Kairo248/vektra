@@ -4,6 +4,7 @@ import type {
   AccountResponse,
   AdminUserListItem,
   ApiErrorBody,
+  ChangePasswordRequest,
   CreateTaskRequest,
   LoginRequest,
   SignupRequest,
@@ -13,6 +14,7 @@ import type {
   TaskResponse,
   TransactionResponse,
   UpdateTaskStatusRequest,
+  UpdateUserRequest,
   UserResponse,
   WalletBalanceResponse,
 } from "@/types/vektra";
@@ -125,6 +127,41 @@ export async function getUser(userId: number): Promise<UserResponse> {
   try {
     const { data } = await apiClient.get<UserResponse>(`/v1/users/${userId}`);
     return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/**
+ * PATCH the user's profile (name / surname). Fields omitted from the body
+ * are left untouched by the server, so callers can update one attribute
+ * without echoing the rest.
+ */
+export async function updateUser(
+  userId: number,
+  body: UpdateUserRequest
+): Promise<UserResponse> {
+  try {
+    const { data } = await apiClient.patch<UserResponse>(
+      `/v1/users/${userId}`,
+      body
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/**
+ * POST /v1/auth/change-password. 204 No Content on success; throws with a
+ * useful message for wrong current password / weak new password / same as
+ * the old one.
+ */
+export async function changePassword(
+  body: ChangePasswordRequest
+): Promise<void> {
+  try {
+    await apiClient.post("/v1/auth/change-password", body);
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }

@@ -1,6 +1,7 @@
 package com.vektra.service;
 
 import com.vektra.dto.request.SignupRequest;
+import com.vektra.dto.request.UpdateUserRequest;
 import com.vektra.dto.request.UpdateUserRoleRequest;
 import com.vektra.dto.response.SignupResponse;
 import com.vektra.dto.response.UserResponse;
@@ -39,6 +40,42 @@ public class UserService {
     public UserResponse getById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+        return userMapper.toResponse(user);
+    }
+
+    /**
+     * Patches the user's profile (currently name / surname). Fields left null
+     * on the request are not touched — that's why this is PATCH and not PUT:
+     * callers can update one attribute without echoing every other one back.
+     * A non-null but blank value (after trim) is rejected so we don't silently
+     * blank out a column that the entity marks as nullable=false.
+     */
+    @Transactional
+    public UserResponse updateProfile(Long id, UpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+
+        boolean changed = false;
+        if (request.getName() != null) {
+            String trimmed = request.getName().trim();
+            if (trimmed.isEmpty()) {
+                throw new IllegalArgumentException("name must not be blank");
+            }
+            user.setName(trimmed);
+            changed = true;
+        }
+        if (request.getSurname() != null) {
+            String trimmed = request.getSurname().trim();
+            if (trimmed.isEmpty()) {
+                throw new IllegalArgumentException("surname must not be blank");
+            }
+            user.setSurname(trimmed);
+            changed = true;
+        }
+
+        if (changed) {
+            user = userRepository.save(user);
+        }
         return userMapper.toResponse(user);
     }
 

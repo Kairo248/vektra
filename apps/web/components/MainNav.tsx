@@ -11,6 +11,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/tasks", label: "Tasks" },
   { href: "/wallet", label: "Wallet" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export function MainNav() {

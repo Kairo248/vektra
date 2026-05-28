@@ -1,5 +1,6 @@
 package com.vektra.service;
 
+import com.vektra.dto.request.ChangePasswordRequest;
 import com.vektra.dto.request.LoginRequest;
 import com.vektra.dto.response.SignupResponse;
 import com.vektra.entity.Account;
@@ -54,5 +55,37 @@ public class AuthService {
                 userMapper.toResponse(user),
                 accountMapper.toResponse(account),
                 walletMapper.toResponse(wallet));
+    }
+
+    /**
+     * Rotates the password for a user after re-verifying the current one.
+     *
+     * <p>Re-verifying the current password matters even when the request is
+     * already "authenticated": it protects against an attacker who has
+     * hijacked a single session (cookie/JWT) but doesn't know the actual
+     * credential. New password must differ from the current one to avoid
+     * confusing no-ops.
+     *
+     * <p>When real JWTs are introduced this is also the natural place to
+     * bump a per-account {@code tokenVersion} so previously issued tokens
+     * are rejected on subsequent requests — i.e. an implicit "log out from
+     * all devices" on password change.
+     */
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        Account account = accountRepository.findByUserId(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Account not found for user: " + request.getUserId()));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), account.getPassword())) {
+            throw new IllegalArgumentException(
+                    "New password must be different from the current one");
+        }
+
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
     }
 }
