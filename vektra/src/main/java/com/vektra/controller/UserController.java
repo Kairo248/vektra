@@ -1,6 +1,7 @@
 package com.vektra.controller;
 
 import com.vektra.dto.request.SignupRequest;
+import com.vektra.dto.request.UpdateUserRequest;
 import com.vektra.dto.response.AccountResponse;
 import com.vektra.dto.response.SignupResponse;
 import com.vektra.dto.response.UserResponse;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +40,18 @@ public class UserController {
     @GetMapping("/{id}")
     public UserResponse getUser(@PathVariable Long id) {
         return userService.getById(id);
+    }
+
+    /**
+     * Partially updates the user's profile. Body fields are optional —
+     * {@code {"name": "Ada"}} touches only the name. Email lives on the
+     * account entity and is intentionally not editable through this route.
+     */
+    @PatchMapping("/{id}")
+    public UserResponse updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequest request) {
+        return userService.updateProfile(id, request);
     }
 
     @GetMapping("/{id}/account")

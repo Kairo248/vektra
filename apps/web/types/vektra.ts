@@ -61,6 +61,19 @@ export interface LoginRequest {
   password: string;
 }
 
+/** PATCH /v1/users/{id} — every field optional (null/undefined means "leave alone"). */
+export interface UpdateUserRequest {
+  name?: string;
+  surname?: string;
+}
+
+/** POST /v1/auth/change-password — caller must re-prove the current password. */
+export interface ChangePasswordRequest {
+  userId: number;
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface TaskResponse {
   id: number;
   name: string;
