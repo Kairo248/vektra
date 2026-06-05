@@ -13,6 +13,7 @@ import type {
   TaskResponse,
   TransactionResponse,
   UpdateTaskStatusRequest,
+  UpdateUserRequest,
   UserResponse,
   WalletBalanceResponse,
 } from "@/types/vektra";
@@ -127,6 +128,25 @@ export async function login(body: LoginRequest): Promise<SignupResponse> {
 export async function getUser(userId: number): Promise<UserResponse> {
   try {
     const { data } = await apiClient.get<UserResponse>(`/v1/users/${userId}`);
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/**
+ * Partial profile update for a user (admin or self). Backend ignores `null`
+ * fields so callers should only send keys they want to change.
+ */
+export async function updateUser(
+  userId: number,
+  body: UpdateUserRequest
+): Promise<UserResponse> {
+  try {
+    const { data } = await apiClient.patch<UserResponse>(
+      `/v1/users/${userId}`,
+      body
+    );
     return data;
   } catch (e) {
     throw new Error(getErrorMessage(e));

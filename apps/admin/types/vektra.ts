@@ -128,3 +128,13 @@ export interface CreateTaskRequest {
 export interface UpdateTaskStatusRequest {
   status: TaskStatus;
 }
+
+/**
+ * PATCH payload for `/v1/users/{id}`. Both fields are optional — omit a key
+ * (or pass `undefined`) to leave that attribute unchanged. Sending an
+ * empty/blank string is rejected by the backend.
+ */
+export interface UpdateUserRequest {
+  name?: string;
+  surname?: string;
+}
