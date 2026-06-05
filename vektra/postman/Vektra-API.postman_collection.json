@@ -51,6 +51,24 @@
             "url": "{{baseUrl}}/v1/auth/login",
             "description": "Returns user, account, wallet (no JWT in current dev setup)."
           }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/auth/change-password",
+            "description": "204 No Content on success. 401 if currentPassword is wrong. 400 if newPassword fails validation or equals the current one."
+          }
         }
       ]
     },
@@ -81,6 +99,24 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/v1/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update user (PATCH name/surname)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Grace\",\n  \"surname\": \"Hopper\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/users/{{userId}}",
+            "description": "Partial update. Either field can be omitted to leave it unchanged. Returns the updated UserResponse."
           }
         },
         {
