@@ -13,7 +13,26 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     boolean existsByTaskCompletionId(Long taskCompletionId);
 
+    /**
+     * Ledger balance: credit-positive sign by transaction type.
+     *
+     *   EARN, TRANSFER_IN   →  +amount
+     *   SPEND, TRANSFER_OUT →  -amount
+     *
+     * Computed in SQL (not Java) so a user with 100k transactions still resolves
+     * in a single round-trip. {@code COALESCE} keeps the return non-null when
+     * the user has no rows yet.
+     */
     @Query(
-            "SELECT COALESCE(SUM(t.amount), 0) FROM VektraTransaction t WHERE t.userId = :userId AND t.status = :status")
-    Long sumAmountByUserIdAndStatus(@Param("userId") Long userId, @Param("status") TransactionStatus status);
+            "SELECT COALESCE(SUM("
+                    + "  CASE "
+                    + "    WHEN t.type = com.vektra.enums.TransactionType.EARN "
+                    + "      OR t.type = com.vektra.enums.TransactionType.TRANSFER_IN THEN t.amount "
+                    + "    ELSE -t.amount "
+                    + "  END"
+                    + "), 0) "
+                    + "FROM VektraTransaction t "
+                    + "WHERE t.userId = :userId AND t.status = :status")
+    Long sumSignedAmountByUserIdAndStatus(
+            @Param("userId") Long userId, @Param("status") TransactionStatus status);
 }

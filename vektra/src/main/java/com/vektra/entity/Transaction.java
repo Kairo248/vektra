@@ -49,6 +49,22 @@ public class Transaction {
     @Column(name = "task_completion_id", unique = true)
     private Long taskCompletionId;
 
+    /**
+     * Correlates the two legs (TRANSFER_OUT + TRANSFER_IN) of a peer-to-peer transfer.
+     * Null on EARN/SPEND rows that did not originate from a transfer.
+     */
+    @Column(name = "transfer_id", length = 36)
+    private String transferId;
+
+    /**
+     * The other user involved in this row:
+     *   TRANSFER_OUT → recipient's user_id
+     *   TRANSFER_IN  → sender's user_id
+     * Null on EARN/SPEND rows that did not originate from a transfer.
+     */
+    @Column(name = "counterparty_user_id")
+    private Long counterpartyUserId;
+
     @Column(nullable = false)
     private Integer amount;
 
