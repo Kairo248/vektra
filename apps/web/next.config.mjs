@@ -24,6 +24,23 @@ const nextConfig = {
       },
     ];
   },
+  webpack: (config) => {
+    /*
+     * @vladmandic/face-api ships a single ESM bundle that uses dynamic
+     * `require()` to optionally pick up a TF.js native backend. Webpack
+     * can't statically analyze it and emits a "Critical dependency"
+     * warning on every build. The runtime behavior is fine — we never
+     * hit that branch in the browser — so we suppress the noise here.
+     */
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      {
+        module: /node_modules[\\/]@vladmandic[\\/]face-api/,
+        message: /Critical dependency: require function is used/,
+      },
+    ];
+    return config;
+  },
 };
 
 export default nextConfig;

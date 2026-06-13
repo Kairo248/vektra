@@ -74,6 +74,26 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+/**
+ * 128-d L2-normalized face embedding produced by face-api.js. Same shape on
+ * both POST /v1/users/{id}/face (enrollment) and POST /v1/auth/face-login.
+ * Sent as a plain JSON number array — Spring's float[] DTO parses that
+ * directly.
+ */
+export interface FaceEnrollRequest {
+  embedding: number[];
+}
+
+export interface FaceLoginRequest {
+  embedding: number[];
+}
+
+/** GET /v1/users/{id}/face — `enrolledAt` is omitted when not enrolled. */
+export interface FaceStatusResponse {
+  enrolled: boolean;
+  enrolledAt?: string;
+}
+
 export interface TaskResponse {
   id: number;
   name: string;
