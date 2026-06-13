@@ -3,6 +3,7 @@ package com.vektra.service;
 import com.vektra.dto.response.TransactionResponse;
 import com.vektra.dto.response.WalletBalanceResponse;
 import com.vektra.entity.Transaction;
+import com.vektra.entity.User;
 import com.vektra.enums.TransactionStatus;
 import com.vektra.enums.TransactionType;
 import com.vektra.exception.ResourceNotFoundException;
@@ -10,7 +11,13 @@ import com.vektra.mapper.TransactionMapper;
 import com.vektra.messaging.LedgerTransactionRecordedEvent;
 import com.vektra.repository.TransactionRepository;
 import com.vektra.repository.UserRepository;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -62,7 +69,8 @@ public class TransactionService {
     public WalletBalanceResponse getWalletBalance(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-        Long balance = transactionRepository.sumAmountByUserIdAndStatus(userId, TransactionStatus.COMPLETED);
+        Long balance = transactionRepository.sumSignedAmountByUserIdAndStatus(
+                userId, TransactionStatus.COMPLETED);
         return WalletBalanceResponse.builder().userId(userId).balance(balance).build();
     }
 
@@ -70,8 +78,26 @@ public class TransactionService {
     public List<TransactionResponse> listForUser(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-        return transactionRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(transactionMapper::toResponse)
+        List<Transaction> rows = transactionRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+
+        // Batch-load counterparty users so the response can include first/last name on
+        // transfer rows. One findAllById covers the whole page; non-transfer rows have
+        // counterpartyUserId == null and contribute nothing to the lookup set.
+        Set<Long> counterpartyIds = rows.stream()
+                .map(Transaction::getCounterpartyUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(HashSet::new));
+        Map<Long, User> counterpartyById = counterpartyIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(counterpartyIds).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return rows.stream()
+                .map(tx -> transactionMapper.toResponse(
+                        tx,
+                        tx.getCounterpartyUserId() != null
+                                ? counterpartyById.get(tx.getCounterpartyUserId())
+                                : null))
                 .toList();
     }
 }

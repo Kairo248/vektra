@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vektra.dto.request.ChangePasswordRequest;
 import com.vektra.exception.InvalidCredentialsException;
 import com.vektra.service.AuthService;
+import com.vektra.service.FaceAuthService;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,13 @@ class AuthControllerChangePasswordTest {
     @Autowired ObjectMapper objectMapper;
 
     @MockBean AuthService authService;
+    /*
+     * AuthController constructor-injects these as part of the face-login flow.
+     * The slice test doesn't exercise face login, but Spring still needs both
+     * beans to assemble the controller, so we mock them with no behavior set.
+     */
+    @MockBean FaceAuthService faceAuthService;
+    @MockBean FaceLoginRateLimiter faceLoginRateLimiter;
 
     @Test
     void returns204OnSuccess() throws Exception {

@@ -42,6 +42,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(baseError(HttpStatus.UNAUTHORIZED, ex.getMessage()));
     }
 
+    /**
+     * Both face-auth failure modes deliberately collapse to the same opaque
+     * 401 body: an attacker enumerating accounts must not be able to tell
+     * "no face enrolled for this user" from "face didn't match".
+     */
+    @ExceptionHandler({FaceNotEnrolledException.class, FaceMatchFailedException.class})
+    public ResponseEntity<ApiError> handleFaceAuthFailure(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(baseError(HttpStatus.UNAUTHORIZED, "Face not recognized"));
+    }
+
+    @ExceptionHandler(RateLimitedException.class)
+    public ResponseEntity<ApiError> handleRateLimited(RateLimitedException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(baseError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
+    }
+
     @ExceptionHandler(DuplicateTaskCompletionException.class)
     public ResponseEntity<ApiError> handleDuplicateTaskCompletion(DuplicateTaskCompletionException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(baseError(HttpStatus.CONFLICT, ex.getMessage()));
@@ -54,6 +71,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidTaskCompletionStateException.class)
     public ResponseEntity<ApiError> handleInvalidTaskCompletionState(InvalidTaskCompletionStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(baseError(HttpStatus.BAD_REQUEST, ex.getMessage()));
+    }
+
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<ApiError> handleInsufficientBalance(InsufficientBalanceException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(baseError(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage()));
+    }
+
+    @ExceptionHandler(RecipientMismatchException.class)
+    public ResponseEntity<ApiError> handleRecipientMismatch(RecipientMismatchException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(baseError(HttpStatus.BAD_REQUEST, ex.getMessage()));
     }
 

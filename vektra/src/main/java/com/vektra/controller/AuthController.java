@@ -1,9 +1,12 @@
 package com.vektra.controller;
 
 import com.vektra.dto.request.ChangePasswordRequest;
+import com.vektra.dto.request.FaceLoginRequest;
 import com.vektra.dto.request.LoginRequest;
 import com.vektra.dto.response.SignupResponse;
 import com.vektra.service.AuthService;
+import com.vektra.service.FaceAuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,10 +22,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final FaceAuthService faceAuthService;
+    private final FaceLoginRateLimiter faceLoginRateLimiter;
 
     @PostMapping("/login")
     public SignupResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    /**
+     * 1:N face login. Body carries the 128-d embedding the browser computed
+     * with face-api.js; we scan every enrolled user and accept the closest
+     * match if it's strictly within {@code vektra.face.match-threshold}.
+     * Response shape mirrors {@code /login} so the frontend can drop it into
+     * the same session-storage path regardless of how the user authenticated.
+     */
+    @PostMapping("/face-login")
+    public SignupResponse faceLogin(
+            @Valid @RequestBody FaceLoginRequest request,
+            HttpServletRequest http) {
+        faceLoginRateLimiter.acquireOrThrow(http);
+        return faceAuthService.loginByFace(request.getEmbedding());
     }
 
     /**
