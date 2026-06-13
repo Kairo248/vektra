@@ -14,9 +14,21 @@ import type {
   AccountResponse,
   TaskResponse,
   TransactionResponse,
+  TransactionType,
   UserResponse,
 } from "@/types/vektra";
 import { StatusBanner } from "@/components/StatusBanner";
+
+/** Inflows: EARN (task reward) and TRANSFER_IN (received from another user).
+ *  Mirrors the same convention used on the wallet page so the two views agree. */
+const CREDIT_TYPES: ReadonlySet<TransactionType> = new Set<TransactionType>([
+  "EARN",
+  "TRANSFER_IN",
+]);
+
+function isCredit(t: TransactionResponse): boolean {
+  return CREDIT_TYPES.has(t.type);
+}
 
 type DashboardData = {
   user: UserResponse;
@@ -367,50 +379,87 @@ function DashboardView({
               <EmptyActivity />
             ) : (
               <ul className="divide-y divide-zinc-100">
-                {recentTx.map((tx, i) => (
-                  <li
-                    key={tx.id}
-                    className={`animate-fade-in-up flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50/70`}
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  >
-                    <div className="flex items-center gap-3">
+                {recentTx.map((tx, i) => {
+                  const credit = isCredit(tx);
+                  const amount = Math.abs(tx.amount);
+                  const isTransfer =
+                    tx.type === "TRANSFER_IN" || tx.type === "TRANSFER_OUT";
+                  // Mirrors the wallet row: prefer a real name; fall back to
+                  // "user #N" only when the backend couldn't resolve it.
+                  const counterpartyFullName = isTransfer
+                    ? [tx.counterpartyName, tx.counterpartySurname]
+                        .filter((p): p is string => Boolean(p && p.trim()))
+                        .join(" ")
+                        .trim() || null
+                    : null;
+                  let label: string;
+                  if (tx.type === "TRANSFER_IN") {
+                    label = `Received from ${
+                      counterpartyFullName ??
+                      `user #${tx.counterpartyUserId ?? "?"}`
+                    }`;
+                  } else if (tx.type === "TRANSFER_OUT") {
+                    label = `Sent to ${
+                      counterpartyFullName ??
+                      `user #${tx.counterpartyUserId ?? "?"}`
+                    }`;
+                  } else if (tx.type === "EARN") {
+                    label = "Reward received";
+                  } else {
+                    label = "Spent";
+                  }
+                  return (
+                    <li
+                      key={tx.id}
+                      className={`animate-fade-in-up flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50/70`}
+                      style={{ animationDelay: `${i * 60}ms` }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                            credit
+                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                              : "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                          }`}
+                        >
+                          {credit ? (
+                            <ArrowDownIcon className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpIcon className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-900">
+                            {label}
+                            {tx.taskCompletionId ? (
+                              <span className="ml-1 text-xs font-normal text-zinc-500">
+                                · completion #{tx.taskCompletionId}
+                              </span>
+                            ) : null}
+                          </p>
+                          {isTransfer &&
+                          counterpartyFullName &&
+                          tx.counterpartyUserId != null ? (
+                            <p className="truncate text-xs font-medium text-zinc-600">
+                              #{tx.counterpartyUserId}
+                            </p>
+                          ) : null}
+                          <p className="truncate text-xs text-zinc-500">
+                            {formatRelative(new Date(tx.createdAt))} ·{" "}
+                            <StatusPill status={tx.status} />
+                          </p>
+                        </div>
+                      </div>
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                          tx.type === "EARN"
-                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-                            : "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                        className={`shrink-0 text-sm font-semibold tabular-nums ${
+                          credit ? "text-emerald-700" : "text-rose-700"
                         }`}
                       >
-                        {tx.type === "EARN" ? (
-                          <ArrowDownIcon className="h-4 w-4" />
-                        ) : (
-                          <ArrowUpIcon className="h-4 w-4" />
-                        )}
+                        {credit ? "+" : "−"} ₵{amount}
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-zinc-900">
-                          {tx.type === "EARN" ? "Reward received" : "Spent"}
-                          {tx.taskCompletionId ? (
-                            <span className="ml-1 text-xs font-normal text-zinc-500">
-                              · completion #{tx.taskCompletionId}
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="truncate text-xs text-zinc-500">
-                          {formatRelative(new Date(tx.createdAt))} ·{" "}
-                          <StatusPill status={tx.status} />
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      className={`shrink-0 text-sm font-semibold tabular-nums ${
-                        tx.amount >= 0 ? "text-emerald-700" : "text-rose-700"
-                      }`}
-                    >
-                      {tx.amount > 0 ? `+ ₵${tx.amount}` : `- ₵${Math.abs(tx.amount)}`}
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

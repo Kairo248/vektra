@@ -43,14 +43,28 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
+        return buildAggregate(account.getUserId());
+    }
 
+    /**
+     * Loads the {@link User} + {@link Account} + {@link Wallet} aggregate for {@code userId}
+     * and returns it as the same {@link SignupResponse} shape used by signup and login.
+     *
+     * <p>Centralized here so any path that "logs the user in" — classic password login,
+     * face login, future SSO — emits an identical response and the frontend doesn't need
+     * to special-case the entry point.
+     */
+    @Transactional(readOnly = true)
+    public SignupResponse buildAggregate(Long userId) {
         User user = userRepository
-                .findById(account.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + account.getUserId()));
+                .findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        Account account = accountRepository
+                .findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found for user: " + userId));
         Wallet wallet = walletRepository
-                .findByUserId(account.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user: " + account.getUserId()));
-
+                .findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user: " + userId));
         return new SignupResponse(
                 userMapper.toResponse(user),
                 accountMapper.toResponse(account),

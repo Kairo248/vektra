@@ -13,6 +13,8 @@ import type {
   TaskCompletionStatus,
   TaskResponse,
   TransactionResponse,
+  TransferRequest,
+  TransferResponse,
   UpdateTaskStatusRequest,
   UpdateUserRequest,
   UserResponse,
@@ -222,6 +224,41 @@ export async function getTransactions(
   try {
     const { data } = await apiClient.get<TransactionResponse[]>(
       `/v1/users/${userId}/transactions`
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/**
+ * Peer-to-peer transfer: moves `body.amount` Vektras from the caller to the
+ * user identified by `body.recipientId`.
+ *
+ * The optional `recipientEmail` / `recipientName` are "Confirmation of Payee"
+ * fields — when present, the backend verifies they match the actual recipient
+ * and rejects the transfer if they don't, catching typo'd IDs.
+ *
+ * Empty strings on optional fields are stripped before the request so the
+ * backend's `@Email` validator doesn't fire on "".
+ */
+export async function sendTransfer(
+  senderId: number,
+  body: TransferRequest
+): Promise<TransferResponse> {
+  const payload: TransferRequest = {
+    recipientId: body.recipientId,
+    amount: body.amount,
+  };
+  const email = body.recipientEmail?.trim();
+  if (email) payload.recipientEmail = email;
+  const name = body.recipientName?.trim();
+  if (name) payload.recipientName = name;
+
+  try {
+    const { data } = await apiClient.post<TransferResponse>(
+      `/v1/users/${senderId}/transfers`,
+      payload
     );
     return data;
   } catch (e) {
