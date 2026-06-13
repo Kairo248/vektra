@@ -42,6 +42,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(baseError(HttpStatus.UNAUTHORIZED, ex.getMessage()));
     }
 
+    /**
+     * Both face-auth failure modes deliberately collapse to the same opaque
+     * 401 body: an attacker enumerating accounts must not be able to tell
+     * "no face enrolled for this user" from "face didn't match".
+     */
+    @ExceptionHandler({FaceNotEnrolledException.class, FaceMatchFailedException.class})
+    public ResponseEntity<ApiError> handleFaceAuthFailure(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(baseError(HttpStatus.UNAUTHORIZED, "Face not recognized"));
+    }
+
+    @ExceptionHandler(RateLimitedException.class)
+    public ResponseEntity<ApiError> handleRateLimited(RateLimitedException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(baseError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
+    }
+
     @ExceptionHandler(DuplicateTaskCompletionException.class)
     public ResponseEntity<ApiError> handleDuplicateTaskCompletion(DuplicateTaskCompletionException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(baseError(HttpStatus.CONFLICT, ex.getMessage()));

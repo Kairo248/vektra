@@ -75,3 +75,13 @@ vektra:
     audit-consumer-enabled: false
     topics:
       ledger: vektra.ledger.events
+  face:
+    # Maximum Euclidean distance between two L2-normalized 128-d face-api.js
+    # embeddings that still counts as a match. Tighter than the face-api.js
+    # 1:1 default of 0.6 because we run 1:N where false positives are worse.
+    match-threshold: 0.50
+    embedding-dimension: 128
+    norm-tolerance: 0.05
+    rate-limit:
+      per-minute: 5
+      per-hour: 30
