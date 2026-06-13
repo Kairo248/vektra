@@ -12,7 +12,7 @@ export type TaskStatus = "ACTIVE" | "INACTIVE";
 
 export type TaskCompletionStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-export type TransactionType = "EARN" | "SPEND";
+export type TransactionType = "EARN" | "SPEND" | "TRANSFER_IN" | "TRANSFER_OUT";
 
 export type TransactionStatus = "PENDING" | "COMPLETED";
 
@@ -106,9 +106,37 @@ export interface TransactionResponse {
   userId: number;
   taskId: number | null;
   taskCompletionId: number | null;
+  /** UUID linking the two legs of a peer-to-peer transfer; null on non-transfer rows. */
+  transferId: string | null;
+  /** Other party in a transfer: sender on TRANSFER_IN, recipient on TRANSFER_OUT. */
+  counterpartyUserId: number | null;
+  /** Counterparty's first name; null on non-transfer rows or if the user was removed. */
+  counterpartyName: string | null;
+  /** Counterparty's surname; null on non-transfer rows or if the user was removed. */
+  counterpartySurname: string | null;
   amount: number;
   type: TransactionType;
   status: TransactionStatus;
+  createdAt: string;
+}
+
+/** POST /v1/users/{senderId}/transfers body. recipientId is required; email/name are
+ *  optional "Confirmation of Payee" fields the backend validates against the recipient. */
+export interface TransferRequest {
+  recipientId: number;
+  recipientEmail?: string;
+  recipientName?: string;
+  amount: number;
+}
+
+export interface TransferResponse {
+  transferId: string;
+  senderId: number;
+  recipientId: number;
+  amount: number;
+  senderTransactionId: number;
+  recipientTransactionId: number;
+  senderBalanceAfter: number;
   createdAt: string;
 }
 
