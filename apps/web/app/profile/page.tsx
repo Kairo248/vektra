@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   changePassword,
@@ -12,6 +13,26 @@ import {
 import { clearSession, getStoredUserId } from "@/lib/session";
 import type { AccountResponse, UserResponse } from "@/types/vektra";
 import { StatusBanner } from "@/components/StatusBanner";
+
+/**
+ * Face section pulls in face-api + TF.js (~1 MB compressed) plus the model
+ * weights from /models/. Loaded dynamically with `ssr: false` so those
+ * heavy deps stay out of the profile route's first paint and never
+ * evaluate on the server.
+ */
+const FaceLoginSection = dynamic(() => import("./FaceLoginSection"), {
+  ssr: false,
+  loading: () => (
+    <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="border-b border-zinc-100 px-5 py-4">
+        <h2 className="text-base font-semibold text-zinc-900">Face login</h2>
+      </div>
+      <div className="px-5 py-5">
+        <div className="h-10 w-48 animate-pulse rounded bg-zinc-100" />
+      </div>
+    </section>
+  ),
+});
 
 type Loaded = { user: UserResponse; account: AccountResponse };
 
@@ -137,6 +158,8 @@ function ProfileView({
       <AccountInfoCard account={account} />
 
       <ChangePasswordForm userId={user.id} />
+
+      <FaceLoginSection userId={user.id} />
 
       <DangerZone onLogoutAll={onLogout} />
     </div>

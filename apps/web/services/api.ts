@@ -6,6 +6,7 @@ import type {
   ApiErrorBody,
   ChangePasswordRequest,
   CreateTaskRequest,
+  FaceStatusResponse,
   LoginRequest,
   SignupRequest,
   SignupResponse,
@@ -50,7 +51,9 @@ apiClient.interceptors.response.use(
     if (axios.isAxiosError(err) && err.response?.status === 401) {
       const url = String(err.config?.url ?? "");
       const isPublicAuth =
-        url.includes("/v1/auth/login") || url.includes("/v1/users/signup");
+        url.includes("/v1/auth/login") ||
+        url.includes("/v1/auth/face-login") ||
+        url.includes("/v1/users/signup");
       if (!isPublicAuth && typeof window !== "undefined") {
         clearSession();
       }
@@ -87,7 +90,13 @@ function getErrorMessage(err: unknown): string {
     if (url.includes("/v1/auth/login")) {
       return "Invalid email or password";
     }
+    if (url.includes("/v1/auth/face-login")) {
+      return "Face not recognized";
+    }
     return "Session expired or not signed in. Please log in again.";
+  }
+  if (ax.response.status === 429) {
+    return data?.message ?? "Too many attempts. Please wait and try again.";
   }
   if (ax.response.status === 404) {
     return (
@@ -164,6 +173,73 @@ export async function changePassword(
 ): Promise<void> {
   try {
     await apiClient.post("/v1/auth/change-password", body);
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Face login
+ *
+ * Embeddings are 128 floats produced client-side by face-api.js
+ * (FaceNet-style, L2-normalized). The backend never sees image bytes.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/**
+ * 1:N face login. Backend scans every enrolled embedding, returns the
+ * closest user iff Euclidean distance < threshold, else 401.
+ *
+ * Response shape mirrors password login so callers can drop the result into
+ * `setStoredSession` exactly the same way.
+ */
+export async function faceLogin(embedding: number[]): Promise<SignupResponse> {
+  try {
+    const { data } = await apiClient.post<SignupResponse>(
+      "/v1/auth/face-login",
+      { embedding }
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/**
+ * Enroll (or re-enroll) the caller's face. Idempotent: the backend
+ * upserts a single row per user, so calling this again replaces the
+ * previous embedding.
+ */
+export async function enrollFace(
+  userId: number,
+  embedding: number[]
+): Promise<void> {
+  try {
+    await apiClient.post(`/v1/users/${userId}/face`, { embedding });
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+export async function getFaceStatus(
+  userId: number
+): Promise<FaceStatusResponse> {
+  try {
+    const { data } = await apiClient.get<FaceStatusResponse>(
+      `/v1/users/${userId}/face`
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+/**
+ * Removes the stored embedding. Idempotent on the backend (no-op when
+ * not enrolled), so the UI can call it without first checking status.
+ */
+export async function deleteFaceCredential(userId: number): Promise<void> {
+  try {
+    await apiClient.delete(`/v1/users/${userId}/face`);
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }
