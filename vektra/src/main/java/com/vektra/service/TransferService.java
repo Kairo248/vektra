@@ -147,7 +147,7 @@ public class TransferService {
 
         // (7) Emit Kafka events — actually published AFTER_COMMIT, so a
         // rollback below this point would suppress both.
-        eventPublisher.publishEvent(new LedgerTransactionRecordedEvent(
+        eventPublisher.publishEvent(LedgerTransactionRecordedEvent.forTransfer(
                 outRow.getId(),
                 outRow.getUserId(),
                 transferId,
@@ -156,7 +156,7 @@ public class TransferService {
                 outRow.getType().name(),
                 outRow.getStatus().name(),
                 outRow.getCreatedAt()));
-        eventPublisher.publishEvent(new LedgerTransactionRecordedEvent(
+        eventPublisher.publishEvent(LedgerTransactionRecordedEvent.forTransfer(
                 inRow.getId(),
                 inRow.getUserId(),
                 transferId,

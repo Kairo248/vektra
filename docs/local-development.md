@@ -39,6 +39,7 @@ Then open:
 
 - Public site: <http://localhost/>
 - Admin: <http://localhost/admin>
+- Factory: <http://localhost/factory>
 - API (through Nginx): <http://localhost/api/v3/api-docs>
 
 To stop:
@@ -116,6 +117,7 @@ scripts are managed at the root):
 npm install              # one time
 npm run dev:web          # http://localhost:3000
 npm run dev:admin        # http://localhost:3000/admin (in a second terminal)
+npm run dev:factory      # http://localhost:3000/factory (in a third terminal)
 ```
 
 In dev there is **no Nginx**. The browser hits the Next.js dev server
@@ -139,10 +141,13 @@ docker compose -f vektra/docker-compose.yml down
 # --- Frontends (run from repo root) ---
 npm run dev:web
 npm run dev:admin
+npm run dev:factory
 npm run lint:web
 npm run lint:admin
+npm run lint:factory
 npm run build:web
 npm run build:admin
+npm run build:factory
 
 # --- Backend ---
 cd vektra && mvn spring-boot:run
@@ -170,6 +175,8 @@ cd vektra && mvn -DskipTests package
   "fix" it.
 - **Admin app at `http://localhost:3000` returns 404** — admin is built with
   `basePath: /admin`. Use <http://localhost:3000/admin> instead.
+- **Factory app at `http://localhost:3000` returns 404** — factory is built with
+  `basePath: /factory`. Use <http://localhost:3000/factory> instead.
 - **`docker compose down -v` deletes the database** — the `-v` flag removes
   the `mysql_data` volume. Use plain `docker compose down` if you want to
   keep your data.

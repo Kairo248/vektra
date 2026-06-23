@@ -1,11 +1,11 @@
 # Architecture
 
-Vektra is a small monorepo with three application services (a public web app,
-an admin app, and a Spring Boot backend) sitting behind a single Nginx reverse
-proxy and backed by MySQL. The whole stack is containerized with Docker
-Compose for local and self-hosted use, and the same three application
-services are also deployed to Render's free tier (without Nginx, with an
-external managed database).
+Vektra is a small monorepo with four application services (a public web app,
+an admin app, a factory catalog app, and a Spring Boot backend) sitting behind
+a single Nginx reverse proxy and backed by MySQL. The whole stack is
+containerized with Docker Compose for local and self-hosted use, and the same
+four application services are also deployed to Render's free tier (without
+Nginx, with an external managed database).
 
 This document describes **what runs**, **how requests flow through the
 system**, and **why** the topology looks the way it does. For deploy steps see
@@ -21,6 +21,7 @@ system**, and **why** the topology looks the way it does. For deploy steps see
 | `nginx`   | Reverse proxy                              | `nginx:1.27-alpine`                    | 80            | **80**    | **Yes** (only)       | [`vektra/nginx/nginx.conf`](../vektra/nginx/nginx.conf) |
 | `web`     | Next.js 14 (Node 20)                       | built from `apps/web/Dockerfile`       | 3000          | —         | No (`expose:` only)  | [`apps/web/`](../apps/web/)                       |
 | `admin`   | Next.js 14 (Node 20), `basePath: /admin`   | built from `apps/admin/Dockerfile`     | 3000          | —         | No                   | [`apps/admin/`](../apps/admin/)                   |
+| `factory` | Next.js 14 (Node 20), `basePath: /factory` | built from `apps/factory/Dockerfile`   | 3000          | —         | No                   | [`apps/factory/`](../apps/factory/)               |
 | `backend` | Spring Boot 3 (Java 17), context-path `/api` | built from `vektra/Dockerfile`       | 8080          | —         | No                   | [`vektra/`](../vektra/)                           |
 | `mysql`   | MySQL 8.4                                  | `mysql:8.4`                            | 3306          | **3308**  | DB tools only        | volume `mysql_data`                               |
 
@@ -83,7 +84,14 @@ Browser ── HTTP ──▶ Nginx :80 (location /admin)
                      └──▶ admin :3000   (Next.js basePath = /admin)
 ```
 
-### 3. API call from the browser (Compose)
+### 3. Page load — factory (Compose)
+
+```
+Browser ── HTTP ──▶ Nginx :80 (location /factory)
+                     └──▶ factory :3000   (Next.js basePath = /factory)
+```
+
+### 4. API call from the browser (Compose)
 
 ```
 Browser ── HTTP ──▶ Nginx :80 (location /api)
@@ -91,11 +99,11 @@ Browser ── HTTP ──▶ Nginx :80 (location /api)
                            └──▶ mysql :3306
 ```
 
-The browser does **not** go through `web` or `admin` to reach the API in
-Compose — it calls Nginx directly on `/api/*`, because the build sets
+The browser does **not** go through `web`, `admin`, or `factory` to reach the
+API in Compose — it calls Nginx directly on `/api/*`, because the build sets
 `NEXT_PUBLIC_API_URL=/api`.
 
-### 4. API call from the browser (Render)
+### 5. API call from the browser (Render)
 
 ```
 Browser ── HTTPS ──▶ vektra-web.onrender.com /spring-api/...
@@ -124,6 +132,7 @@ flowchart LR
         subgraph net[Compose network]
             Web[web :3000<br/>Next.js]
             Admin[admin :3000<br/>Next.js basePath=/admin]
+            Factory[factory :3000<br/>Next.js basePath=/factory]
             Backend[backend :8080<br/>Spring Boot context-path=/api]
             DB[(mysql :3306)]
         end
@@ -131,10 +140,12 @@ flowchart LR
 
     User -- ":80 /" --> Nginx
     User -- ":80 /admin" --> Nginx
+    User -- ":80 /factory" --> Nginx
     User -- ":80 /api" --> Nginx
 
     Nginx -- "/" --> Web
     Nginx -- "/admin" --> Admin
+    Nginx -- "/factory" --> Factory
     Nginx -- "/api" --> Backend
     Backend -- "JDBC :3306" --> DB
 
@@ -148,13 +159,16 @@ flowchart LR
     User((User browser))
     Web[vektra-web.onrender.com]
     Admin["vektra-admin.onrender.com/admin"]
+    Factory["vektra-factory.onrender.com/factory"]
     Backend[vektra-backend.onrender.com/api]
     DB[(Clever Cloud MySQL)]
 
     User -- HTTPS --> Web
     User -- HTTPS --> Admin
+    User -- HTTPS --> Factory
     Web -- "/spring-api/* (server-side rewrite)" --> Backend
     Admin -- "/spring-api/* (server-side rewrite)" --> Backend
+    Factory -- "/spring-api/* (server-side rewrite)" --> Backend
     Backend -- "JDBC over TLS" --> DB
 ```
 

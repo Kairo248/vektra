@@ -1,5 +1,5 @@
 services:
-  # Single public entry on port 80. Routes: / → web, /admin → admin, /api → Spring.
+  # Single public entry on port 80. Routes: / → web, /admin → admin, /factory → factory, /api → Spring.
   # Internal services are not published to the host; only Nginx + DB (optional) are.
   nginx:
     image: nginx:1.27-alpine
@@ -11,6 +11,7 @@ services:
     depends_on:
       - web
       - admin
+      - factory
       - backend
 
   mysql:
@@ -70,6 +71,21 @@ services:
         BACKEND_URL: http://backend:8080
         NEXT_PUBLIC_API_URL: /api
     container_name: vektra-admin
+    expose:
+      - "3000"
+    environment:
+      BACKEND_URL: http://backend:8080
+    depends_on:
+      - backend
+
+  factory:
+    build:
+      context: ../apps/factory
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://backend:8080
+        NEXT_PUBLIC_API_URL: /api
+    container_name: vektra-factory
     expose:
       - "3000"
     environment:

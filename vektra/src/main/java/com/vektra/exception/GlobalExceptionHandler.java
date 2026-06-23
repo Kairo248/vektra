@@ -85,6 +85,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(baseError(HttpStatus.BAD_REQUEST, ex.getMessage()));
     }
 
+    @ExceptionHandler(StoreItemNotAvailableException.class)
+    public ResponseEntity<ApiError> handleStoreItemNotAvailable(StoreItemNotAvailableException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(baseError(HttpStatus.NOT_FOUND, ex.getMessage()));
+    }
+
+    @ExceptionHandler(ItemOutOfStockException.class)
+    public ResponseEntity<ApiError> handleItemOutOfStock(ItemOutOfStockException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(baseError(HttpStatus.CONFLICT, ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(baseError(HttpStatus.BAD_REQUEST, ex.getMessage()));

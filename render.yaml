@@ -1,7 +1,7 @@
 # =============================================================================
 # Vektra — Render Blueprint (free-tier staging)
 # =============================================================================
-# Three Docker services deployed from this monorepo. The database is external
+# Four Docker services deployed from this monorepo. The database is external
 # (Clever Cloud free MySQL) — its connection details are set as secret env
 # vars (sync: false) on the backend service in the Render dashboard.
 #
@@ -67,6 +67,21 @@ services:
     dockerfilePath: ./apps/admin/Dockerfile
     dockerContext: ./apps/admin
     healthCheckPath: /admin
+    envVars:
+      - key: BACKEND_URL
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # Factory Next.js. Catalog studio at /factory (store item CRUD).
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: vektra-factory
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./apps/factory/Dockerfile
+    dockerContext: ./apps/factory
+    healthCheckPath: /factory
     envVars:
       - key: BACKEND_URL
         sync: false
