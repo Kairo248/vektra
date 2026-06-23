@@ -26,6 +26,11 @@ public class TransactionResponse {
     private String counterpartyName;
     /** Counterparty's surname; null on non-transfer rows or if the user was removed. */
     private String counterpartySurname;
+    /** Set on SPEND rows from a store purchase. */
+    private Long purchaseId;
+    private Long storeItemId;
+    /** Store item name when {@link #storeItemId} is set; null if the item was removed. */
+    private String storeItemName;
     private Integer amount;
     private TransactionType type;
     private TransactionStatus status;

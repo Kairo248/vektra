@@ -16,6 +16,9 @@ import type {
   TransactionResponse,
   TransferRequest,
   TransferResponse,
+  StoreItemResponse,
+  PurchaseResponse,
+  CreatePurchaseRequest,
   UpdateTaskStatusRequest,
   UpdateUserRequest,
   UserResponse,
@@ -105,7 +108,10 @@ function getErrorMessage(err: unknown): string {
     );
   }
   if (ax.response.status === 403) return "Not allowed (account may be pending)";
-  if (ax.response.status === 409) return "Conflict — maybe already completed";
+  if (ax.response.status === 422) {
+    return data?.message ?? "Insufficient balance for this purchase";
+  }
+  if (ax.response.status === 409) return data?.message ?? "Conflict — item may be out of stock";
   return ax.message || "Request failed";
 }
 
@@ -335,6 +341,51 @@ export async function sendTransfer(
     const { data } = await apiClient.post<TransferResponse>(
       `/v1/users/${senderId}/transfers`,
       payload
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+// ——— Shop (maps to Spring `/api/v1/store-items`, `/api/v1/users/{id}/purchases`) ———
+
+/** Lists ACTIVE catalog items for the shop. Pass `category` to narrow results. */
+export async function listStoreItems(opts?: {
+  category?: string;
+}): Promise<StoreItemResponse[]> {
+  try {
+    const { data } = await apiClient.get<StoreItemResponse[]>("/v1/store-items", {
+      params: {
+        includeInactive: false,
+        category: opts?.category || undefined,
+      },
+    });
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+export async function purchaseStoreItem(
+  userId: number,
+  storeItemId: number
+): Promise<PurchaseResponse> {
+  try {
+    const { data } = await apiClient.post<PurchaseResponse>(
+      `/v1/users/${userId}/purchases`,
+      { storeItemId } satisfies CreatePurchaseRequest
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+export async function listPurchases(userId: number): Promise<PurchaseResponse[]> {
+  try {
+    const { data } = await apiClient.get<PurchaseResponse[]>(
+      `/v1/users/${userId}/purchases`
     );
     return data;
   } catch (e) {

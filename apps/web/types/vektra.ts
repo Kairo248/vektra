@@ -134,6 +134,11 @@ export interface TransactionResponse {
   counterpartyName: string | null;
   /** Counterparty's surname; null on non-transfer rows or if the user was removed. */
   counterpartySurname: string | null;
+  /** Set on SPEND rows from a store purchase. */
+  purchaseId: number | null;
+  storeItemId: number | null;
+  /** Store item name when storeItemId is set; null if the item was removed. */
+  storeItemName: string | null;
   amount: number;
   type: TransactionType;
   status: TransactionStatus;
@@ -188,4 +193,37 @@ export interface CreateTaskRequest {
 
 export interface UpdateTaskStatusRequest {
   status: TaskStatus;
+}
+
+export type StoreItemStatus = "ACTIVE" | "INACTIVE";
+
+export type PurchaseStatus = "COMPLETED";
+
+export interface StoreItemResponse {
+  id: number;
+  name: string;
+  description: string;
+  priceAmount: number;
+  status: StoreItemStatus;
+  /** null = unlimited stock */
+  stock: number | null;
+  category: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePurchaseRequest {
+  storeItemId: number;
+}
+
+export interface PurchaseResponse {
+  id: number;
+  userId: number;
+  storeItemId: number;
+  storeItemName: string;
+  amountPaid: number;
+  status: PurchaseStatus;
+  transactionId: number;
+  balanceAfter: number;
+  createdAt: string;
 }
