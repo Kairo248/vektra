@@ -1,6 +1,7 @@
 package com.vektra.mapper;
 
 import com.vektra.dto.response.TransactionResponse;
+import com.vektra.entity.StoreItem;
 import com.vektra.entity.Transaction;
 import com.vektra.entity.User;
 import org.springframework.stereotype.Component;
@@ -9,7 +10,11 @@ import org.springframework.stereotype.Component;
 public class TransactionMapper {
 
     public TransactionResponse toResponse(Transaction entity) {
-        return toResponse(entity, null);
+        return toResponse(entity, null, null);
+    }
+
+    public TransactionResponse toResponse(Transaction entity, User counterparty) {
+        return toResponse(entity, counterparty, null);
     }
 
     /**
@@ -21,7 +26,7 @@ public class TransactionMapper {
      * counterparty user has since been removed; in those cases name/surname stay null
      * and the frontend falls back to "user #&lt;id&gt;".
      */
-    public TransactionResponse toResponse(Transaction entity, User counterparty) {
+    public TransactionResponse toResponse(Transaction entity, User counterparty, StoreItem storeItem) {
         if (entity == null) {
             return null;
         }
@@ -34,6 +39,9 @@ public class TransactionMapper {
                 .counterpartyUserId(entity.getCounterpartyUserId())
                 .counterpartyName(counterparty != null ? counterparty.getName() : null)
                 .counterpartySurname(counterparty != null ? counterparty.getSurname() : null)
+                .purchaseId(entity.getPurchaseId())
+                .storeItemId(entity.getStoreItemId())
+                .storeItemName(storeItem != null ? storeItem.getName() : null)
                 .amount(entity.getAmount())
                 .type(entity.getType())
                 .status(entity.getStatus())

@@ -65,6 +65,12 @@ public class Transaction {
     @Column(name = "counterparty_user_id")
     private Long counterpartyUserId;
 
+    @Column(name = "purchase_id")
+    private Long purchaseId;
+
+    @Column(name = "store_item_id")
+    private Long storeItemId;
+
     @Column(nullable = false)
     private Integer amount;
 

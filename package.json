@@ -7,9 +7,12 @@
   "scripts": {
     "dev:web": "npm run -w web dev",
     "dev:admin": "npm run -w admin dev",
+    "dev:factory": "npm run -w factory dev",
     "build:web": "npm run -w web build",
     "build:admin": "npm run -w admin build",
+    "build:factory": "npm run -w factory build",
     "lint:web": "npm run -w web lint",
-    "lint:admin": "npm run -w admin lint"
+    "lint:admin": "npm run -w admin lint",
+    "lint:factory": "npm run -w factory lint"
   }
 }

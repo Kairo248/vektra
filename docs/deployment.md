@@ -15,7 +15,7 @@ back or troubleshoot. For the bigger picture see
 | Edge proxy | Nginx (in repo) | none — one domain per service |
 | Browser → API path | `/api/*` (Nginx) | `/spring-api/*` (Next.js rewrite) |
 | Database | `mysql:8.4` container, volume `mysql_data` | external Clever Cloud MySQL |
-| Public URL | `http://localhost` | `vektra-{web,admin,backend}.onrender.com` |
+| Public URL | `http://localhost` | `vektra-{web,admin,factory,backend}.onrender.com` |
 | Cold starts | none | ~30–60 s after 15 min idle |
 | Defined in | [`vektra/docker-compose.yml`](../vektra/docker-compose.yml) | [`render.yaml`](../render.yaml) |
 
@@ -42,17 +42,18 @@ its healthcheck. Once it's up:
 
 - Public site: <http://localhost/>
 - Admin: <http://localhost/admin>
+- Factory: <http://localhost/factory>
 - API (through Nginx): <http://localhost/api/v3/api-docs>
 - MySQL from a host tool: `localhost:3308` (user `root`, password `root`,
   db `vektra`)
 
 ### What happens behind the scenes
 
-1. Nginx, MySQL, web, admin, and backend images are built or pulled.
+1. Nginx, MySQL, web, admin, factory, and backend images are built or pulled.
 2. MySQL starts and runs its healthcheck (`mysqladmin ping`) every 5 s.
 3. Once MySQL is `healthy`, `backend` starts (Spring auto-creates the schema
    thanks to `createDatabaseIfNotExist=true` in the JDBC URL).
-4. `web` and `admin` start in parallel; they only need `backend` to be
+4. `web`, `admin`, and `factory` start in parallel; they only need `backend` to be
    started, not healthy.
 5. Nginx starts last and begins routing on port 80.
 
@@ -74,8 +75,8 @@ docker compose down -v    # also delete the mysql_data volume — destroys data
 ## Deploying to Render
 
 Render is configured as a Blueprint via [`render.yaml`](../render.yaml). It
-deploys **three Docker services** — `vektra-backend`, `vektra-web`, and
-`vektra-admin`. There is no `nginx` service and no `mysql` service: Render's
+deploys **four Docker services** — `vektra-backend`, `vektra-web`,
+`vektra-admin`, and `vektra-factory`. There is no `nginx` service and no `mysql` service: Render's
 free tier doesn't run a shared edge proxy, and the database lives outside
 Render entirely.
 
@@ -85,17 +86,18 @@ Render entirely.
    in `render.yaml`'s comments) is Clever Cloud's MySQL DEV add-on.
 2. **Connect the GitHub repo** in the Render dashboard and choose
    "Blueprint" deploy pointing at `render.yaml`. Render will create the
-   three services automatically.
+   four services automatically.
 3. **Set secrets on `vektra-backend`** (these have `sync: false` in
    `render.yaml`, meaning they are *not* committed to git and must be set in
    the dashboard):
    - `SPRING_DATASOURCE_URL` — full JDBC URL to your Clever Cloud DB
    - `SPRING_DATASOURCE_USERNAME`
    - `SPRING_DATASOURCE_PASSWORD`
-4. **Set `BACKEND_URL` on `vektra-web` and `vektra-admin`** to the backend's
-   public URL (e.g. `https://vektra-backend.onrender.com`). Trigger a
-   redeploy on each — `BACKEND_URL` is consumed as a Docker `ARG`, so it is
-   baked into the JS bundle at build time and only changes after a rebuild.
+4. **Set `BACKEND_URL` on `vektra-web`, `vektra-admin`, and `vektra-factory`**
+   to the backend's public URL (e.g. `https://vektra-backend.onrender.com`).
+   Trigger a redeploy on each — `BACKEND_URL` is consumed as a Docker `ARG`,
+   so it is baked into the JS bundle at build time and only changes after a
+   rebuild.
 
 ### Health checks
 
@@ -106,6 +108,7 @@ Render pings these paths to know each service is up:
 | `vektra-backend` | `/api/v3/api-docs`    |
 | `vektra-web`     | `/`                   |
 | `vektra-admin`   | `/admin`              |
+| `vektra-factory` | `/factory`            |
 
 ### Cold starts
 
@@ -120,8 +123,8 @@ demo.
 
 | Variable                       | Service(s)         | Stage                                | Example                                                                                          | Notes                                                                                  |
 | ------------------------------ | ------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `BACKEND_URL`                  | `web`, `admin`     | **Both** (Dockerfile `ARG` + `ENV`)  | `http://backend:8080` (Compose) / `https://vektra-backend.onrender.com` (Render)                 | Used by `next.config.mjs` rewrite. Build-time use means changes require a rebuild.     |
-| `NEXT_PUBLIC_API_URL`          | `web`, `admin`     | **Build-time only**                  | `/api` (Compose) / `/spring-api` (Render default)                                                | Baked into the JS bundle at build. Browser uses this prefix to call the API.           |
+| `BACKEND_URL`                  | `web`, `admin`, `factory` | **Both** (Dockerfile `ARG` + `ENV`)  | `http://backend:8080` (Compose) / `https://vektra-backend.onrender.com` (Render)                 | Used by `next.config.mjs` rewrite. Build-time use means changes require a rebuild.     |
+| `NEXT_PUBLIC_API_URL`          | `web`, `admin`, `factory` | **Build-time only**                  | `/api` (Compose) / `/spring-api` (Render default)                                                | Baked into the JS bundle at build. Browser uses this prefix to call the API.           |
 | `SPRING_DATASOURCE_URL`        | `backend`          | Runtime                              | `jdbc:mysql://mysql:3306/vektra?createDatabaseIfNotExist=true&useSSL=false&...`                  | Falls back to `localhost:3306` if unset (see `application.properties`).                |
 | `SPRING_DATASOURCE_USERNAME`   | `backend`          | Runtime                              | `root`                                                                                           | Set in compose; `sync: false` secret on Render.                                        |
 | `SPRING_DATASOURCE_PASSWORD`   | `backend`          | Runtime                              | `root`                                                                                           | Same.                                                                                  |
@@ -188,6 +191,22 @@ LIMIT 5;
 ```
 
 Then retry a transfer from the wallet UI — no redeploy needed.
+
+### Migration 002 — store catalog + purchases (required for Shop / Factory)
+
+Run
+[`vektra/scripts/migrations/002_store_catalog.sql`](../vektra/scripts/migrations/002_store_catalog.sql)
+on Clever Cloud before deploying code that uses store items or purchases. It
+creates `store_items` and `purchases`, and adds `purchase_id` /
+`store_item_id` to `transactions`.
+
+**Verify:**
+
+```sql
+SHOW TABLES LIKE 'store_items';
+SHOW TABLES LIKE 'purchases';
+SHOW COLUMNS FROM transactions LIKE 'purchase_id';
+```
 
 ---
 

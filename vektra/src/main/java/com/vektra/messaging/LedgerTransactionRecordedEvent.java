@@ -8,6 +8,7 @@ import java.time.Instant;
  * Field guide:
  *   - taskId / taskCompletionId  →  set when the row came from a task reward
  *   - transferId / counterpartyUserId →  set on TRANSFER_IN and TRANSFER_OUT rows
+ *   - purchaseId / storeItemId → set on SPEND rows from a store purchase
  *
  * New fields are additive: downstream consumers that only read the original
  * fields continue to work unchanged (Jackson tolerates unknown properties on
@@ -21,6 +22,8 @@ public record LedgerTransactionRecordedEvent(
         Long taskCompletionId,
         String transferId,
         Long counterpartyUserId,
+        Long purchaseId,
+        Long storeItemId,
         Integer amount,
         String transactionType,
         String transactionStatus,
@@ -28,8 +31,7 @@ public record LedgerTransactionRecordedEvent(
 
     public static final String TYPE = "LEDGER_TRANSACTION_RECORDED";
 
-    /** Convenience constructor for task-reward callers that don't deal with transfers. */
-    public LedgerTransactionRecordedEvent(
+    public static LedgerTransactionRecordedEvent forTaskReward(
             Long transactionId,
             Long userId,
             Long taskId,
@@ -38,12 +40,14 @@ public record LedgerTransactionRecordedEvent(
             String transactionType,
             String transactionStatus,
             Instant createdAt) {
-        this(
+        return new LedgerTransactionRecordedEvent(
                 TYPE,
                 transactionId,
                 userId,
                 taskId,
                 taskCompletionId,
+                null,
+                null,
                 null,
                 null,
                 amount,
@@ -52,8 +56,7 @@ public record LedgerTransactionRecordedEvent(
                 createdAt);
     }
 
-    /** Convenience constructor for transfer callers. */
-    public LedgerTransactionRecordedEvent(
+    public static LedgerTransactionRecordedEvent forTransfer(
             Long transactionId,
             Long userId,
             String transferId,
@@ -62,7 +65,7 @@ public record LedgerTransactionRecordedEvent(
             String transactionType,
             String transactionStatus,
             Instant createdAt) {
-        this(
+        return new LedgerTransactionRecordedEvent(
                 TYPE,
                 transactionId,
                 userId,
@@ -70,6 +73,33 @@ public record LedgerTransactionRecordedEvent(
                 null,
                 transferId,
                 counterpartyUserId,
+                null,
+                null,
+                amount,
+                transactionType,
+                transactionStatus,
+                createdAt);
+    }
+
+    public static LedgerTransactionRecordedEvent forPurchase(
+            Long transactionId,
+            Long userId,
+            Long purchaseId,
+            Long storeItemId,
+            Integer amount,
+            String transactionType,
+            String transactionStatus,
+            Instant createdAt) {
+        return new LedgerTransactionRecordedEvent(
+                TYPE,
+                transactionId,
+                userId,
+                null,
+                null,
+                null,
+                null,
+                purchaseId,
+                storeItemId,
                 amount,
                 transactionType,
                 transactionStatus,
