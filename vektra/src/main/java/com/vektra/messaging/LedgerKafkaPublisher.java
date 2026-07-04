@@ -6,12 +6,21 @@ import com.vektra.config.VektraKafkaProperties;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+/**
+ * Ships committed ledger rows to Kafka. Gated on
+ * {@code vektra.kafka.publisher-enabled} (default false) so that, without a
+ * running broker, the bean isn't created and after-commit publishing can't block
+ * the request thread on producer metadata (default 60s). Enable it once a broker
+ * is available.
+ */
 @Component
+@ConditionalOnProperty(name = "vektra.kafka.publisher-enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class LedgerKafkaPublisher {
 
