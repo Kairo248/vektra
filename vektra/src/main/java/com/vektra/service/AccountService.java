@@ -18,6 +18,7 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
+    private final MemberJourneyService memberJourneyService;
 
     @Transactional(readOnly = true)
     public void requireActiveAccount(Long userId) {
@@ -52,7 +53,9 @@ public class AccountService {
                     "Only PENDING accounts can be activated; current state: " + account.getAccountState());
         }
         account.setAccountState(AccountState.ACTIVE);
-        return accountMapper.toResponse(accountRepository.save(account));
+        Account saved = accountRepository.save(account);
+        memberJourneyService.recordAccountActivated(saved);
+        return accountMapper.toResponse(saved);
     }
 
     @Transactional
