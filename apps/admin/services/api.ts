@@ -16,6 +16,9 @@ import type {
   UpdateUserRequest,
   UserResponse,
   WalletBalanceResponse,
+  MemberJourneyResponse,
+  MemberJourneyEventResponse,
+  JourneyBackfillSummary,
 } from "@/types/vektra";
 
 /**
@@ -334,6 +337,47 @@ export async function adminRejectCompletion(
   try {
     const { data } = await apiClient.patch<TaskCompletionResponse>(
       `/v1/task-completions/${id}/reject`
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+export async function adminGetUserJourney(
+  userId: number
+): Promise<MemberJourneyResponse> {
+  try {
+    const { data } = await apiClient.get<MemberJourneyResponse>(
+      `/v1/admin/journey/users/${userId}`
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+export async function adminGetJourneyEvent(
+  eventId: number
+): Promise<MemberJourneyEventResponse> {
+  try {
+    const { data } = await apiClient.get<MemberJourneyEventResponse>(
+      `/v1/admin/journey/events/${eventId}`
+    );
+    return data;
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
+}
+
+export async function adminBackfillJourney(
+  userId?: number
+): Promise<JourneyBackfillSummary> {
+  try {
+    const { data } = await apiClient.post<JourneyBackfillSummary>(
+      "/v1/admin/journey/backfill",
+      null,
+      { params: userId != null ? { userId } : undefined }
     );
     return data;
   } catch (e) {

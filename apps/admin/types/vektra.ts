@@ -162,3 +162,47 @@ export interface UpdateUserRequest {
   name?: string;
   surname?: string;
 }
+
+export type MemberJourneyEventType =
+  | "SIGNUP"
+  | "ACCOUNT_ACTIVATED"
+  | "REWARD_EARNED"
+  | "PURCHASE"
+  | "TRANSFER_OUT"
+  | "TRANSFER_IN";
+
+export interface MemberJourneyEventResponse {
+  id: number;
+  userId: number;
+  eventType: MemberJourneyEventType;
+  occurredAt: string;
+  title: string;
+  subtitle: string | null;
+  amount: number | null;
+  direction: "IN" | "OUT" | null;
+  transactionId: number | null;
+  taskId: number | null;
+  taskName: string | null;
+  purchaseId: number | null;
+  storeItemId: number | null;
+  storeItemName: string | null;
+  transferId: string | null;
+  counterpartyUserId: number | null;
+  counterpartyDisplayName: string | null;
+}
+
+export interface MemberJourneyResponse {
+  userId: number;
+  name: string;
+  surname: string;
+  email: string;
+  accountState: AccountState;
+  balance: number;
+  events: MemberJourneyEventResponse[];
+}
+
+export interface JourneyBackfillSummary {
+  eventsCreated: number;
+  eventsSkipped: number;
+  userId: number | null;
+}

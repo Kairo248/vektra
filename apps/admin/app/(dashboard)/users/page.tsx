@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   adminActivateAccount,
@@ -340,6 +341,13 @@ export default function AdminUsersPage() {
                           </div>
                         ) : (
                           <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Link
+                              href={`/users/${r.userId}/journey`}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                            >
+                              <RouteIcon className="h-3.5 w-3.5" />
+                              Journey
+                            </Link>
                             <button
                               type="button"
                               onClick={() => setEditing(r)}
@@ -834,6 +842,25 @@ function PencilIcon({ className = "" }: { className?: string }) {
     >
       <path d="M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4z" />
       <path d="M13.5 6.5l4 4" />
+    </svg>
+  );
+}
+
+function RouteIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="6" cy="19" r="3" />
+      <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+      <circle cx="18" cy="5" r="3" />
     </svg>
   );
 }
