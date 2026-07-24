@@ -2,8 +2,10 @@ package com.vektra.service;
 
 import com.vektra.dto.response.TransactionResponse;
 import com.vektra.dto.response.WalletBalanceResponse;
+import com.vektra.entity.StoreItem;
 import com.vektra.entity.Transaction;
 import com.vektra.entity.User;
+import com.vektra.repository.StoreItemRepository;
 import com.vektra.enums.TransactionStatus;
 import com.vektra.enums.TransactionType;
 import com.vektra.exception.ResourceNotFoundException;
@@ -29,8 +31,10 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final StoreItemRepository storeItemRepository;
     private final TransactionMapper transactionMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final MemberJourneyService memberJourneyService;
 
     /**
      * Inserts a COMPLETED EARN for a task reward. Idempotent per {@code taskCompletionId} when present.
@@ -53,8 +57,9 @@ public class TransactionService {
                 .status(TransactionStatus.COMPLETED)
                 .build();
         Transaction saved = transactionRepository.save(tx);
+        memberJourneyService.recordRewardEarned(saved);
         eventPublisher.publishEvent(
-                new LedgerTransactionRecordedEvent(
+                LedgerTransactionRecordedEvent.forTaskReward(
                         saved.getId(),
                         saved.getUserId(),
                         saved.getTaskId(),
@@ -63,6 +68,37 @@ public class TransactionService {
                         saved.getType().name(),
                         saved.getStatus().name(),
                         saved.getCreatedAt()));
+    }
+
+    /**
+     * Inserts a COMPLETED SPEND for a store purchase. Caller must hold the buyer's wallet
+     * lock and validate balance before calling.
+     */
+    @Transactional
+    public Transaction recordPurchase(Long userId, Long storeItemId, int amount, Long purchaseId) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Purchase amount must be positive");
+        }
+        Transaction tx = Transaction.builder()
+                .userId(userId)
+                .storeItemId(storeItemId)
+                .purchaseId(purchaseId)
+                .amount(amount)
+                .type(TransactionType.SPEND)
+                .status(TransactionStatus.COMPLETED)
+                .build();
+        Transaction saved = transactionRepository.save(tx);
+        eventPublisher.publishEvent(
+                LedgerTransactionRecordedEvent.forPurchase(
+                        saved.getId(),
+                        saved.getUserId(),
+                        saved.getPurchaseId(),
+                        saved.getStoreItemId(),
+                        saved.getAmount(),
+                        saved.getType().name(),
+                        saved.getStatus().name(),
+                        saved.getCreatedAt()));
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -92,11 +128,23 @@ public class TransactionService {
                 : userRepository.findAllById(counterpartyIds).stream()
                         .collect(Collectors.toMap(User::getId, Function.identity()));
 
+        Set<Long> storeItemIds = rows.stream()
+                .map(Transaction::getStoreItemId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(HashSet::new));
+        Map<Long, StoreItem> storeItemById = storeItemIds.isEmpty()
+                ? Map.of()
+                : storeItemRepository.findAllById(storeItemIds).stream()
+                        .collect(Collectors.toMap(StoreItem::getId, Function.identity()));
+
         return rows.stream()
                 .map(tx -> transactionMapper.toResponse(
                         tx,
                         tx.getCounterpartyUserId() != null
                                 ? counterpartyById.get(tx.getCounterpartyUserId())
+                                : null,
+                        tx.getStoreItemId() != null
+                                ? storeItemById.get(tx.getStoreItemId())
                                 : null))
                 .toList();
     }

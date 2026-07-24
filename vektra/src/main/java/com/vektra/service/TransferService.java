@@ -54,6 +54,7 @@ public class TransferService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MemberJourneyService memberJourneyService;
 
     @Transactional
     public TransferResponse transfer(Long senderId, TransferRequest request) {
@@ -147,7 +148,7 @@ public class TransferService {
 
         // (7) Emit Kafka events — actually published AFTER_COMMIT, so a
         // rollback below this point would suppress both.
-        eventPublisher.publishEvent(new LedgerTransactionRecordedEvent(
+        eventPublisher.publishEvent(LedgerTransactionRecordedEvent.forTransfer(
                 outRow.getId(),
                 outRow.getUserId(),
                 transferId,
@@ -156,7 +157,7 @@ public class TransferService {
                 outRow.getType().name(),
                 outRow.getStatus().name(),
                 outRow.getCreatedAt()));
-        eventPublisher.publishEvent(new LedgerTransactionRecordedEvent(
+        eventPublisher.publishEvent(LedgerTransactionRecordedEvent.forTransfer(
                 inRow.getId(),
                 inRow.getUserId(),
                 transferId,
@@ -165,6 +166,9 @@ public class TransferService {
                 inRow.getType().name(),
                 inRow.getStatus().name(),
                 inRow.getCreatedAt()));
+
+        memberJourneyService.recordTransferLeg(outRow);
+        memberJourneyService.recordTransferLeg(inRow);
 
         long senderBalanceAfter = currentBalance - amount;
         return TransferResponse.builder()

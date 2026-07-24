@@ -35,6 +35,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final AccountMapper accountMapper;
     private final WalletMapper walletMapper;
+    private final MemberJourneyService memberJourneyService;
 
     @Transactional(readOnly = true)
     public UserResponse getById(Long id) {
@@ -120,6 +121,8 @@ public class UserService {
                 .walletState(WalletState.ACTIVE)
                 .build();
         wallet = walletRepository.save(wallet);
+
+        memberJourneyService.recordSignup(user, account);
 
         return new SignupResponse(
                 userMapper.toResponse(user),

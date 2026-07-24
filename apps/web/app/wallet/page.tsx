@@ -325,6 +325,13 @@ function HeroCard({
               Send Vektras
             </button>
             <Link
+              href="/shop"
+              className="group inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-white/20"
+            >
+              Visit shop
+              <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link
               href="/tasks"
               className="group inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-white/20"
             >
@@ -583,6 +590,7 @@ function TxRow({
   const credit = isCredit(tx);
   const isPending = tx.status === "PENDING";
   const isTransfer = tx.type === "TRANSFER_IN" || tx.type === "TRANSFER_OUT";
+  const isPurchase = tx.type === "SPEND" && tx.storeItemId != null;
   const amount = Math.abs(tx.amount);
 
   // For transfers, the title shows the counterparty's full name (when the
@@ -608,6 +616,11 @@ function TxRow({
       title = `Sent to ${who}`;
       directionLabel = "Transfer out";
     }
+  } else if (isPurchase) {
+    title =
+      tx.storeItemName ??
+      (tx.storeItemId != null ? `Item #${tx.storeItemId}` : "Shop purchase");
+    directionLabel = "Shop purchase";
   } else {
     title =
       taskName ??
@@ -625,6 +638,8 @@ function TxRow({
     ? tx.type === "TRANSFER_IN"
       ? ArrowDownLeftIcon
       : ArrowUpRightIcon
+    : isPurchase
+    ? BagIcon
     : credit
     ? TrendUpIcon
     : TrendDownIcon;
@@ -1328,6 +1343,16 @@ function TrendDownIcon(props: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden {...props}>
       <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
       <polyline points="17 18 23 18 23 12" />
+    </svg>
+  );
+}
+
+function BagIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden {...props}>
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
     </svg>
   );
 }
