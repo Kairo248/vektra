@@ -41,6 +41,7 @@ public class PurchaseService {
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
     private final PurchaseMapper purchaseMapper;
+    private final MemberJourneyService memberJourneyService;
 
     @Transactional
     public PurchaseResponse purchase(Long userId, CreatePurchaseRequest request) {
@@ -100,6 +101,8 @@ public class PurchaseService {
             item.setStock(item.getStock() - 1);
             storeItemRepository.save(item);
         }
+
+        memberJourneyService.recordPurchase(purchase, item, spend.getId());
 
         long balanceAfter = currentBalance - price;
         return purchaseMapper.toResponse(purchase, item, spend.getId(), balanceAfter);

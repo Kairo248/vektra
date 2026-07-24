@@ -12,6 +12,12 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
+      properties:
+        # Fail fast (5s) instead of the 60s default when no broker/metadata is
+        # reachable, so a misconfigured broker can never stall request threads.
+        max.block.ms: 5000
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
     consumer:
       group-id: vektra
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -68,11 +74,37 @@ springdoc:
     operations-sorter: method
 
 vektra:
+  # Daily synthetic-data generator. Produces rows that are indistinguishable from
+  # real data (same services, same tables, same ledger events) so dashboards,
+  # MySQL queries, and downstream ETL treat them identically.
+  simulation:
+    # Master switch for the 24h scheduler. The manual trigger endpoint works
+    # regardless of this flag (it only gates the cron). Off by default.
+    enabled: false
+    # Daily run time (Spring cron: sec min hour day month weekday).
+    cron: "0 0 3 * * *"
+    # New PENDING users per run (your admin approval inbox). Keep <= 30.
+    users-per-run: 25
+    store-items-per-run: 40
+    tasks-per-run: 6
+    # Cap on how many already-ACTIVE users drive transactions each run.
+    max-active-users-in-tx: 40
+    # How many tasks each active user attempts to complete (upper bound).
+    max-tasks-per-user: 4
+    # How many purchases each active user attempts (upper bound, affordability permitting).
+    max-purchases-per-user: 3
+    # Peer-to-peer transfers attempted per run (affordability permitting).
+    transfers-per-run: 15
+    # 0 = fresh randomness each run; any non-zero value = reproducible runs.
+    seed: 0
   kafka:
     # Off by default so the app starts without a broker on localhost:9092. Set true in application-local.yml when Kafka is running.
     admin:
       create-topics: false
     audit-consumer-enabled: false
+    # Off by default: without a broker, keep ledger publishing in-process only so
+    # requests never block on Kafka. Set true once a broker runs on bootstrap-servers.
+    publisher-enabled: false
     topics:
       ledger: vektra.ledger.events
   face:

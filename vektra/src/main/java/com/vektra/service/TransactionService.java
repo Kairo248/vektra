@@ -34,6 +34,7 @@ public class TransactionService {
     private final StoreItemRepository storeItemRepository;
     private final TransactionMapper transactionMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final MemberJourneyService memberJourneyService;
 
     /**
      * Inserts a COMPLETED EARN for a task reward. Idempotent per {@code taskCompletionId} when present.
@@ -56,6 +57,7 @@ public class TransactionService {
                 .status(TransactionStatus.COMPLETED)
                 .build();
         Transaction saved = transactionRepository.save(tx);
+        memberJourneyService.recordRewardEarned(saved);
         eventPublisher.publishEvent(
                 LedgerTransactionRecordedEvent.forTaskReward(
                         saved.getId(),

@@ -46,6 +46,7 @@ class PurchaseServiceTest {
     @Mock TransactionRepository transactionRepository;
     @Mock TransactionService transactionService;
     @Mock PurchaseMapper purchaseMapper;
+    @Mock MemberJourneyService memberJourneyService;
 
     @InjectMocks PurchaseService purchaseService;
 
@@ -133,6 +134,7 @@ class PurchaseServiceTest {
         assertThat(item.getStock()).isEqualTo(4);
         verify(transactionService).recordPurchase(2L, 10L, 50, 99L);
         verify(storeItemRepository).save(item);
+        verify(memberJourneyService).recordPurchase(savedPurchase, item, 500L);
     }
 
     @Test

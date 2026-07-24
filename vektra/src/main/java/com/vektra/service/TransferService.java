@@ -54,6 +54,7 @@ public class TransferService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MemberJourneyService memberJourneyService;
 
     @Transactional
     public TransferResponse transfer(Long senderId, TransferRequest request) {
@@ -165,6 +166,9 @@ public class TransferService {
                 inRow.getType().name(),
                 inRow.getStatus().name(),
                 inRow.getCreatedAt()));
+
+        memberJourneyService.recordTransferLeg(outRow);
+        memberJourneyService.recordTransferLeg(inRow);
 
         long senderBalanceAfter = currentBalance - amount;
         return TransferResponse.builder()
